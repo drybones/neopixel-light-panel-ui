@@ -26,7 +26,8 @@ const defaultPreset = {
 class App extends Component {
   render() {
     return (
-      <div className="App">
+      <div className="App container">
+        <h1 className="my-3">Light Panel Config</h1>
         <PresetConfig/>
       </div>
     );
@@ -49,6 +50,7 @@ class PresetConfig extends Component {
     this.handleNewPresetClick = this.handleNewPresetClick.bind(this);
     this.handleDeletePresetClick = this.handleDeletePresetClick.bind(this);
     this.handlePresetNameChange = this.handlePresetNameChange.bind(this);
+    this.handleSoloWaveletClick = this.handleSoloWaveletClick.bind(this);
   }
 
   componentDidMount() {
@@ -76,12 +78,13 @@ class PresetConfig extends Component {
   }
 
   setLightPanelMode(id) {
-    fetch('http://localhost:3000/mode/interactive_wave/'+id);    
+    fetch('http://localhost:3000/mode/interactive_wave/'+id);
   }
 
   handleNewPresetClick() {
     let newPreset = {...defaultPreset};    
     newPreset.id = shortid.generate();
+    newPreset.wavelets = newPreset.wavelets.slice(); // Deeper copy on the array
     
     this.updateServerConfig(newPreset.id, newPreset)
       .then(this.setLightPanelMode(newPreset.id));
@@ -144,6 +147,18 @@ class PresetConfig extends Component {
     if(thisWaveletIndex !== -1) {
       newPresetConfig.wavelets.splice(thisWaveletIndex, 1);
     }
+
+    this.setState({
+      presetConfig: newPresetConfig,
+    });
+    this.updateServerConfig(newPresetConfig.id, newPresetConfig);
+  }
+
+  handleSoloWaveletClick(id) {
+    let newPresetConfig = {...this.state.presetConfig};
+    newPresetConfig.wavelets.forEach(w => {
+      w.solo = (w.id === id ? !(w.solo) : false);
+    });
 
     this.setState({
       presetConfig: newPresetConfig,
@@ -221,9 +236,21 @@ class PresetConfig extends Component {
   
   render() {
     return (
-      <div className="PresetConfig">
-        <PresetList presets={this.state.presets} currentPreset={this.state.currentPreset} onClick={this.handlePresetListClick} onNewPresetClick={this.handleNewPresetClick}/>
-        <PresetItem presetConfig={this.state.presetConfig} onWaveletChange={this.handleWaveletChange} onPresetNameChange={this.handlePresetNameChange} onNewWaveletClick={this.handleNewWaveletClick} onDeleteWaveletClick={this.handleDeleteWaveletClick} onDeletePresetClick={this.handleDeletePresetClick}/>
+      <div className="row">
+        <div className="col-md-3">
+          <PresetList presets={this.state.presets} currentPreset={this.state.currentPreset} onClick={this.handlePresetListClick} onNewPresetClick={this.handleNewPresetClick}/>
+        </div>
+        <div className="col-md">
+          <PresetItem 
+            presetConfig={this.state.presetConfig} 
+            onPresetNameChange={this.handlePresetNameChange} 
+            onDeletePresetClick={this.handleDeletePresetClick}
+            onWaveletChange={this.handleWaveletChange} 
+            onNewWaveletClick={this.handleNewWaveletClick} 
+            onDeleteWaveletClick={this.handleDeleteWaveletClick} 
+            onSoloWaveletClick={this.handleSoloWaveletClick}
+          />
+        </div>
       </div>
     );
   }
@@ -233,14 +260,14 @@ class PresetConfig extends Component {
 function PresetList(props)
 {
   let presetItems = props.presets.map((preset) =>
-    <li key={preset.id} preset-id={preset.id} className={(props.currentPreset === preset.id ? "current" : "")} onClick={() => props.onClick(preset.id)}>{preset.name} ({preset.id})</li>
+    <li className={(props.currentPreset === preset.id) ? "list-group-item active" : "list-group-item"} key={preset.id} preset-id={preset.id} active={(props.currentPreset === preset.id)} onClick={() => props.onClick(preset.id)}>{preset.name}</li>
   );
   return (
-    <div id="preset-list">
-      <ul>
+    <div className="PresetList">
+      <ul className="list-group">
         {presetItems}
-        <li onClick={props.onNewPresetClick}>+ Add new preset</li>
       </ul>
+      <button className="btn btn-secondary btn-block mt-2 mb-3" onClick={props.onNewPresetClick}>+ Add new preset</button>
     </div>
   );
 }
@@ -249,20 +276,38 @@ function PresetItem(props)
 {
   if(props.presetConfig) {
     let waveletList = props.presetConfig.wavelets.map((waveletConfig) =>
-      <WaveletItem waveletConfig={waveletConfig} key={waveletConfig.id} onWaveletChange={(e) => props.onWaveletChange(waveletConfig.id, e)} onDeleteWaveletClick={() => props.onDeleteWaveletClick(waveletConfig.id)} />
+      <WaveletItem 
+        waveletConfig={waveletConfig} 
+        key={waveletConfig.id} 
+        onWaveletChange={(e) => props.onWaveletChange(waveletConfig.id, e)} 
+        onDeleteWaveletClick={() => props.onDeleteWaveletClick(waveletConfig.id)} 
+        onSoloWaveletClick={() => props.onSoloWaveletClick(waveletConfig.id)}
+        />
     );
     return (
-      <div id="preset-item">
-        <p><input type="text" name="name" value={props.presetConfig.name} onChange={props.onPresetNameChange}/> ({props.presetConfig.id}) <span onClick={() => props.onDeletePresetClick(props.presetConfig.id)}>(delete)</span></p>
+      <div id="PresetItem">
+        <div className="form-group">
+          <div className="form-row">
+            <div className="col-md">
+              <input className="form-control form-control-lg" placeholder="Preset Name" type="text" name="name" value={props.presetConfig.name} onChange={props.onPresetNameChange}/>
+            </div>
+            <div className="col-md-auto">
+              <span className="text-muted">Preset ID<br/>{props.presetConfig.id}</span> 
+            </div>
+            <div className="col-md-auto">
+              <button className="btn btn-danger btn-lg" onClick={() => props.onDeletePresetClick(props.presetConfig.id)}>Delete</button>
+            </div>
+          </div>
+        </div>
+
         {waveletList}
-        <div onClick={props.onNewWaveletClick}>+ Add new wavelet</div>
+
+        <button className="btn btn-secondary" onClick={props.onNewWaveletClick}>+ Add new wavelet</button>
       </div>
     );
   } else {
     return (
-      <div id="preset-item">
-        <p>Nothing selected.</p>
-      </div>      
+      <div className="alert alert-info">No preset selected. Choose one from the list, or add a new one.</div>
     );
   }
 }
@@ -304,18 +349,7 @@ class WaveletItem extends Component
     const styles = reactCSS({
       'default': {
         color: {
-          width: '36px',
-          height: '14px',
-          borderRadius: '2px',
           background: `${ this.props.waveletConfig.color }`,
-        },
-        swatch: {
-          padding: '5px',
-          background: '#fff',
-          borderRadius: '1px',
-          boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
-          display: 'inline-block',
-          cursor: 'pointer',
         },
         popover: {
           position: 'absolute',
@@ -332,47 +366,81 @@ class WaveletItem extends Component
     });
 
     return (
-      <div className="wavelet-config">
-        <div>wavelet id {this.props.waveletConfig.id} <span onClick={this.props.onDeleteWaveletClick}>(delete)</span></div>
-        <form>
-          <div>
-            <label>Freq</label>
-            <input type="number" step="0.1" value={this.props.waveletConfig.freq} name="freq" onChange={this.props.onWaveletChange}/>
+      <div className="border rounded p-3 mb-3">
+      
+        <div className="form-row">
+          <div className="form-group col-md">
+            <label className="small">Frequency</label>
+            <input className="form-control form-control-sm" type="number" step="0.1" value={this.props.waveletConfig.freq} name="freq" onChange={this.props.onWaveletChange}/>
           </div>
-          <div>
-            <label>Lambda</label>
-            <input type="number" step="0.1" value={this.props.waveletConfig.lambda} name="lambda" onChange={this.props.onWaveletChange}/>
+          <div className="form-group col-md">
+            <label className="small">Wavelength</label>
+            <input className="form-control form-control-sm" type="number" step="0.1" value={this.props.waveletConfig.lambda} name="lambda" onChange={this.props.onWaveletChange}/>
           </div>
-          <div>
-            <label>Delta</label>
-            <input type="number" step="0.1" value={this.props.waveletConfig.delta} name="delta" onChange={this.props.onWaveletChange} />
+          <div className="form-group col-md">
+            <label className="small">Phase</label>
+            <input className="form-control form-control-sm" type="number" step="0.1" value={this.props.waveletConfig.delta} name="delta" onChange={this.props.onWaveletChange} />
           </div>
-          <div>
-            <label>Centre</label>
-            <input type="number" step="0.1" value={this.props.waveletConfig.x} name="x" onChange={this.props.onWaveletChange}/> , 
-            <input type="number" step="0.1" value={this.props.waveletConfig.y} name="y" onChange={this.props.onWaveletChange}/>
-          </div>
-          <div>
-           <label>Colour</label>
-           <input type="text" size="3" value={this.props.waveletConfig.color} name="color" onChange={this.props.onWaveletChange}/>
-            <div>
-              <div style={ styles.swatch } onClick={ this.handleClick }>
-                <div style={ styles.color } />
-              </div>
-              { this.state.displayColorPicker ? <div style={ styles.popover }>
-                <div style={ styles.cover } onClick={this.handleClose}/>
-                <ChromePicker color={this.props.waveletConfig.color} onChangeComplete={this.handleColorChangeComplete} disableAlpha={true} />
-              </div> : null }
+        </div>
+
+        <div className="form-group">
+          <label className="small">Colour</label>
+          <div className="form-row">
+            <div className="col">
+              <button className="btn btn-sm border form-control form-control-sm" style={ styles.color } onClick={ this.handleClick }>&nbsp;</button>
+              { this.state.displayColorPicker ? 
+                <div style={ styles.popover }>
+                  <div style={ styles.cover } onClick={this.handleClose}/>
+                  <ChromePicker color={this.props.waveletConfig.color} onChangeComplete={this.handleColorChangeComplete} disableAlpha={true} />
+                </div>
+                : null }
             </div>
-
-
+            <div className="col">
+              <input className="form-control form-control-sm" type="text" size="3" value={this.props.waveletConfig.color} name="color" onChange={this.props.onWaveletChange}/>
+            </div>
           </div>
-          <div>
-            <label>Brightness</label>
-            <input type="range" min="0" max="1" step="0.01" value={this.props.waveletConfig.min} name="min" onChange={this.props.onWaveletChange}/>{Number(this.props.waveletConfig.min).toFixed(2)} to 
-            <input type="range" min="0" max="1" step="0.01" value={this.props.waveletConfig.max} name="max" onChange={this.props.onWaveletChange}/>{Number(this.props.waveletConfig.max).toFixed(2)}
+        </div>
+
+        <div className="form-group">
+          <label className="small">Brightness</label>
+          <div className="form-row">
+            <div className="col-md-1">
+              <span className="form-text small">{Number(this.props.waveletConfig.min).toFixed(2)}</span>
+            </div>
+            <div className="col-md">
+              <input className="form-control form-control-sm" type="range" min="-1" max="1" step="0.01" value={this.props.waveletConfig.min} name="min" onChange={this.props.onWaveletChange}/>
+            </div>
+            <div className="col-md">
+              <input className="form-control form-control-sm" type="range" min="-1" max="1" step="0.01" value={this.props.waveletConfig.max} name="max" onChange={this.props.onWaveletChange}/>
+            </div>
+            <div className="col-md-1">
+              <span className="form-text small">{Number(this.props.waveletConfig.max).toFixed(2)}</span>
+            </div>
           </div>
-        </form>
+        </div>
+
+        <div className="form-group">
+          <label className="small">Position</label>
+          <div className="form-row">
+            <div className="col-md">
+              <input className="form-control form-control-sm" type="number" step="0.1" value={this.props.waveletConfig.x} name="x" onChange={this.props.onWaveletChange}/>
+            </div>
+            <div className="col-md">
+              <input className="form-control form-control-sm" type="number" step="0.1" value={this.props.waveletConfig.y} name="y" onChange={this.props.onWaveletChange}/>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="col">
+            <button className={(this.props.waveletConfig.solo ? "active " : "") + "btn btn-outline-primary btn-sm"} onClick={this.props.onSoloWaveletClick}>Solo</button>
+          </div>
+          <div className="col-auto">
+            <span className="text-muted mr-3 small">Wavelet ID {this.props.waveletConfig.id}</span>
+            <button className="btn btn-danger btn-sm" onClick={this.props.onDeleteWaveletClick}>Delete</button>
+          </div>
+        </div>
+
       </div>
     );  
   }
