@@ -14,7 +14,8 @@ const defaultWavelet = {
     "x": 0.0,
     "y": 0,
     "min": 0.1,
-    "max": 0.7
+    "max": 0.7,
+    "clip": true
 };
 
 const defaultPreset = {
@@ -332,7 +333,7 @@ class WaveletItem extends Component
   };
   
   handleColorChangeComplete(data, e) {
-    // TODO Look up how to do this properly. The defauylt argument from the color
+    // TODO Look up how to do this properly. The default argument from the color
     // picker is just the color data. There's also a browser mouse event.
     let syntheticEvent = {
       target: {
@@ -408,13 +409,18 @@ class WaveletItem extends Component
               <span className="form-text small">{Number(this.props.waveletConfig.min).toFixed(2)}</span>
             </div>
             <div className="col-md">
-              <input className="form-control form-control-sm" type="range" min="-1" max="1" step="0.01" value={this.props.waveletConfig.min} name="min" onChange={this.props.onWaveletChange}/>
+              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={this.props.waveletConfig.min} name="min" onChange={this.props.onWaveletChange}/>
             </div>
             <div className="col-md">
-              <input className="form-control form-control-sm" type="range" min="-1" max="1" step="0.01" value={this.props.waveletConfig.max} name="max" onChange={this.props.onWaveletChange}/>
+              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={this.props.waveletConfig.max} name="max" onChange={this.props.onWaveletChange}/>
             </div>
             <div className="col-md-1">
               <span className="form-text small">{Number(this.props.waveletConfig.max).toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="form-row d-none">
+            <div className="col-md">
+              <input className="form-control form-control-sm" type="checkbox" value={this.props.waveletConfig.clip} name="clip" onChange={this.props.onWaveletChange}/>
             </div>
           </div>
         </div>
