@@ -5,6 +5,8 @@ import './App.css';
 
 var shortid = require('shortid');
 
+var baseUrl = process.env.LIGHTPANEL_API_SERVER || 'http://localhost:3000';
+
 const defaultWavelet = {
     "id": null,
     "color": "#ffffff",
@@ -59,7 +61,7 @@ class PresetConfig extends Component {
   }
 
   getPresetList() {
-    fetch('http://localhost:3000/api/wave_configs/')
+    fetch(baseUrl+'/api/wave_configs/')
       .then((result) => {
         return result.json();
       }).then((jsonresult) => {
@@ -70,7 +72,7 @@ class PresetConfig extends Component {
   handlePresetListClick(id) {
     this.setState({currentPreset: id});
     this.setLightPanelMode(id);
-    fetch('http://localhost:3000/api/wave_config/'+id)
+    fetch(baseUrl+'/api/wave_config/'+id)
       .then((result) => {
         return result.json();
       }).then((jsonresult) => {
@@ -79,7 +81,7 @@ class PresetConfig extends Component {
   }
 
   setLightPanelMode(id) {
-    fetch('http://localhost:3000/mode/interactive_wave/'+id);
+    fetch(baseUrl+'/mode/interactive_wave/'+id);
   }
 
   handleNewPresetClick() {
@@ -118,7 +120,7 @@ class PresetConfig extends Component {
       })
     }
 
-    fetch('http://localhost:3000/api/wave_config/'+id, {
+    fetch(baseUrl+'/api/wave_config/'+id, {
       cache: 'no-cache', // *default, cache, reload, force-cache, only-if-cached
       headers: {
         'user-agent': 'Mozilla/4.0 MDN Example',
@@ -216,7 +218,7 @@ class PresetConfig extends Component {
   }
 
   updateServerConfig(id, config) {
-    return this.putData('http://localhost:3000/api/wave_config/'+id, config);
+    return this.putData(baseUrl+'/api/wave_config/'+id, config);
   }
 
   putData(url, data) {
