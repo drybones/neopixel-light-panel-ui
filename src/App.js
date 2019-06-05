@@ -5,7 +5,7 @@ import './App.css';
 
 var shortid = require('shortid');
 
-var baseUrl = process.env.LIGHTPANEL_API_SERVER || 'http://localhost:3000';
+var baseUrl = process.env.REACT_APP_LIGHTPANEL_API_SERVER || 'http://localhost:3000';
 
 const defaultWavelet = {
     "id": null,
