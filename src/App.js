@@ -26,6 +26,15 @@ const defaultPreset = {
     "wavelets": [],
 };
 
+// TODO These should live somewhere else
+const sliderScalingParam = 6.7975;
+function sliderToMinMax(sliderValue) {
+  return Math.tan(sliderValue / sliderScalingParam);
+}
+function minMaxToSlider(minMaxValue) {
+  return sliderScalingParam * Math.atan(minMaxValue);
+}
+
 class App extends Component {
   render() {
     return (
@@ -180,7 +189,12 @@ class PresetConfig extends Component {
     // TODO Use a proper numeric input that handles this...
     const numericParams = new Set(["freq","lambda","delta","x","y","min","max"]);
     if(numericParams.has(name)) {
-      wavelet[name] = Number(value);
+      if(name==='min' || name==='max') {
+        // Push min / max through a function for non-linear slider behaviour
+        wavelet[name] = sliderToMinMax(Number(value));    
+      } else {
+        wavelet[name] = Number(value);
+      }
     } else {
       wavelet[name] = value;
     }
@@ -411,10 +425,10 @@ class WaveletItem extends Component
               <span className="form-text small">{Number(this.props.waveletConfig.min).toFixed(2)}</span>
             </div>
             <div className="col-md">
-              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={this.props.waveletConfig.min} name="min" onChange={this.props.onWaveletChange}/>
+              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={minMaxToSlider(this.props.waveletConfig.min)} name="min" onChange={this.props.onWaveletChange}/>
             </div>
             <div className="col-md">
-              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={this.props.waveletConfig.max} name="max" onChange={this.props.onWaveletChange}/>
+              <input className="form-control form-control-sm" type="range" min="-10" max="10" step="0.01" value={minMaxToSlider(this.props.waveletConfig.max)} name="max" onChange={this.props.onWaveletChange}/>
             </div>
             <div className="col-md-1">
               <span className="form-text small">{Number(this.props.waveletConfig.max).toFixed(2)}</span>
