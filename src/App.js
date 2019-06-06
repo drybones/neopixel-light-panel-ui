@@ -178,8 +178,8 @@ class PresetConfig extends Component {
     let wavelet = newPresetConfig.wavelets.find(w => w.id === waveletConfigId);
 
     // TODO Use a proper numeric input that handles this...
-    const numnericParams = new Set(["freq","lambda","delta","x","y","min","max"]);
-    if(numnericParams.has(name)) {
+    const numericParams = new Set(["freq","lambda","delta","x","y","min","max"]);
+    if(numericParams.has(name)) {
       wavelet[name] = Number(value);
     } else {
       wavelet[name] = value;
