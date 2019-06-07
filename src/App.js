@@ -26,6 +26,15 @@ const defaultPreset = {
     "wavelets": [],
 };
 
+// Magic ids starting with FIXED- for the non-interactive presets 
+const fixedPresets = [
+  {"id": "FIXED-off", "name": "Off", "type":"fixed"},
+  {"id": "FIXED-embers", "name": "Embers", "type":"fixed"},
+  {"id": "FIXED-particle_trail", "name": "Particle Trail", "type":"fixed"},
+  {"id": "FIXED-candy_sparkler", "name": "Candy Sparkler", "type":"fixed"},
+  {"id": "FIXED-pastel_spots", "name": "Pastel Spots", "type":"fixed"},
+];
+
 // TODO These should live somewhere else
 const sliderScalingParam = 6.7975;
 function sliderToMinMax(sliderValue) {
@@ -74,23 +83,31 @@ class PresetConfig extends Component {
       .then((result) => {
         return result.json();
       }).then((jsonresult) => {
-        this.setState({presets: jsonresult});
+        this.setState({presets: fixedPresets.concat(jsonresult)});
       });
   }
 
   handlePresetListClick(id) {
     this.setState({currentPreset: id});
-    this.setLightPanelMode(id);
-    fetch(baseUrl+'/api/wave_config/'+id)
-      .then((result) => {
-        return result.json();
-      }).then((jsonresult) => {
-        this.setState({presetConfig: jsonresult});
-      });
+    if(id.substring(0,6)==='FIXED-') {
+      this.setLightPanelFixedMode(id.substring(6));
+      this.setState({presetConfig: null});
+    } else {
+      this.setLightPanelInteractiveMode(id);
+      fetch(baseUrl+'/api/wave_config/'+id)
+        .then((result) => {
+          return result.json();
+        }).then((jsonresult) => {
+          this.setState({presetConfig: jsonresult});
+        });
+    }
   }
 
-  setLightPanelMode(id) {
+  setLightPanelInteractiveMode(id) {
     fetch(baseUrl+'/mode/interactive_wave/'+id);
+  }
+  setLightPanelFixedMode(id) {
+    fetch(baseUrl+'/mode/'+id);
   }
 
   handleNewPresetClick() {
@@ -99,7 +116,7 @@ class PresetConfig extends Component {
     newPreset.wavelets = newPreset.wavelets.slice(); // Deeper copy on the array
     
     this.updateServerConfig(newPreset.id, newPreset)
-      .then(this.setLightPanelMode(newPreset.id));
+      .then(this.setLightPanelInteractiveMode(newPreset.id));
 
     let newPresetList = this.state.presets.slice();
     newPresetList.push({id: newPreset.id, name: newPreset.name});
@@ -277,7 +294,15 @@ class PresetConfig extends Component {
 function PresetList(props)
 {
   let presetItems = props.presets.map((preset) =>
-    <li className={(props.currentPreset === preset.id) ? "list-group-item active" : "list-group-item"} key={preset.id} preset-id={preset.id} active={(props.currentPreset === preset.id)} onClick={() => props.onClick(preset.id)}>{preset.name}</li>
+    <li 
+      className={(props.currentPreset === preset.id) ? "list-group-item active" : ("list-group-item" + ((preset.type === 'fixed') ? " list-group-item-secondary" : ""))} 
+      key={preset.id} 
+      preset-id={preset.id} 
+      active={(props.currentPreset === preset.id)} 
+      onClick={() => props.onClick(preset.id)}
+    >
+      {preset.name}
+    </li>
   );
   return (
     <div className="PresetList">
@@ -324,7 +349,7 @@ function PresetItem(props)
     );
   } else {
     return (
-      <div className="alert alert-info">No preset selected. Choose one from the list, or add a new one.</div>
+      <div className="alert alert-info">No interactive preset selected. Choose one from the list, or add a new one.</div>
     );
   }
 }
