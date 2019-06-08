@@ -92,7 +92,7 @@ class PresetConfig extends Component {
   handlePresetListClick(id) {
     this.setState({currentPresetId: id});
     this.setLightPanelCurrentPresetId(id);
-
+    
     let preset = this.state.presets.find(o => o.id === id);
     if(preset.type === 'fixed') {
       this.setState({presetConfig: null});
@@ -151,7 +151,7 @@ class PresetConfig extends Component {
 
     if(this.state.currentPresetId === id) {
       this.setState({
-        currentPresetId: null,
+        currentPresetId: this.state.presets[0].id, // The first is fixed, and "Off"
         presetConfig: null,
       })
     }
