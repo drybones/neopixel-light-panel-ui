@@ -23,17 +23,9 @@ const defaultWavelet = {
 const defaultPreset = {
     "id": null,
     "name": "New Preset",
+    "type": "wavelet",
     "wavelets": [],
 };
-
-// Magic ids starting with FIXED- for the non-interactive presets 
-const fixedPresets = [
-  {"id": "FIXED-off", "name": "Off", "type":"fixed"},
-  {"id": "FIXED-embers", "name": "Embers", "type":"fixed"},
-  {"id": "FIXED-particle_trail", "name": "Particle Trail", "type":"fixed"},
-  {"id": "FIXED-candy_sparkler", "name": "Candy Sparkler", "type":"fixed"},
-  {"id": "FIXED-pastel_spots", "name": "Pastel Spots", "type":"fixed"},
-];
 
 // TODO These should live somewhere else
 const sliderScalingParam = 6.7975;
@@ -48,7 +40,7 @@ class App extends Component {
   render() {
     return (
       <div className="App container">
-        <h1 className="my-3">Light Panel Config</h1>
+        <h1 className="my-3">Lightpanel</h1>
         <PresetConfig/>
       </div>
     );
@@ -61,7 +53,7 @@ class PresetConfig extends Component {
     this.state = 
     {
       presets: [],
-      currentPreset: null,
+      currentPresetId: null,
       presetConfig: null,
     }
     this.handleWaveletChange = this.handleWaveletChange.bind(this);  
@@ -76,25 +68,36 @@ class PresetConfig extends Component {
 
   componentDidMount() {
     this.getPresetList();
+    this.getCurrentPresetId();
   }
 
   getPresetList() {
-    fetch(baseUrl+'/api/wave_configs/')
+    fetch(baseUrl+'/api/all_presets/')
       .then((result) => {
         return result.json();
       }).then((jsonresult) => {
-        this.setState({presets: fixedPresets.concat(jsonresult)});
+        this.setState({presets: jsonresult});
+      });
+  }
+
+  getCurrentPresetId() {
+    fetch(baseUrl+'/api/current_preset_id/')
+      .then((result) => {
+        return result.text();
+      }).then((textresult) => {
+        this.setState({currentPresetId: textresult});
       });
   }
 
   handlePresetListClick(id) {
-    this.setState({currentPreset: id});
-    if(id.substring(0,6)==='FIXED-') {
-      this.setLightPanelFixedMode(id.substring(6));
+    this.setState({currentPresetId: id});
+    this.setLightPanelCurrentPresetId(id);
+
+    let preset = this.state.presets.find(o => o.id === id);
+    if(preset.type === 'fixed') {
       this.setState({presetConfig: null});
     } else {
-      this.setLightPanelInteractiveMode(id);
-      fetch(baseUrl+'/api/wave_config/'+id)
+      fetch(baseUrl+'/api/wave_config/'+preset.id)
         .then((result) => {
           return result.json();
         }).then((jsonresult) => {
@@ -103,11 +106,18 @@ class PresetConfig extends Component {
     }
   }
 
-  setLightPanelInteractiveMode(id) {
-    fetch(baseUrl+'/mode/interactive_wave/'+id);
-  }
-  setLightPanelFixedMode(id) {
-    fetch(baseUrl+'/mode/'+id);
+  setLightPanelCurrentPresetId(id) {
+    fetch(baseUrl+'/api/current_preset_id/'+id, {
+      cache: 'no-cache', // *default, cache, reload, force-cache, only-if-cached
+      headers: {
+        'user-agent': 'Mozilla/4.0 MDN Example',
+        'content-type': 'application/json'
+      },
+      method: 'PUT', // *GET, PUT, DELETE, etc.
+      mode: 'cors', // no-cors, *same-origin
+      redirect: 'follow', // *manual, error
+      referrer: 'no-referrer', // *client
+    });
   }
 
   handleNewPresetClick() {
@@ -116,14 +126,14 @@ class PresetConfig extends Component {
     newPreset.wavelets = newPreset.wavelets.slice(); // Deeper copy on the array
     
     this.updateServerConfig(newPreset.id, newPreset)
-      .then(this.setLightPanelInteractiveMode(newPreset.id));
+      .then(this.setLightPanelCurrentPresetId(newPreset.id));
 
     let newPresetList = this.state.presets.slice();
     newPresetList.push({id: newPreset.id, name: newPreset.name});
 
     this.setState({
       presets: newPresetList,
-      currentPreset: newPreset.id,
+      currentPresetId: newPreset.id,
       presetConfig : newPreset
     });
   }
@@ -139,9 +149,9 @@ class PresetConfig extends Component {
       presets: newPresets,
     });
 
-    if(this.state.currentPreset === id) {
+    if(this.state.currentPresetId === id) {
       this.setState({
-        currentPreset: null,
+        currentPresetId: null,
         presetConfig: null,
       })
     }
@@ -236,7 +246,7 @@ class PresetConfig extends Component {
     let newPresets = this.state.presets.slice();
     
     newPresetConfig.name = event.target.value;
-    let presetIndex = newPresets.findIndex(o => o.id === this.state.currentPreset);
+    let presetIndex = newPresets.findIndex(o => o.id === this.state.currentPresetId);
     if(presetIndex !== -1) {
       newPresets[presetIndex].name = newPresetConfig.name;
     }
@@ -245,7 +255,7 @@ class PresetConfig extends Component {
       presetConfig: newPresetConfig,
       presets: newPresets,
     });
-    this.updateServerConfig(this.state.currentPreset, newPresetConfig);
+    this.updateServerConfig(this.state.currentPresetId, newPresetConfig);
   }
 
   updateServerConfig(id, config) {
@@ -272,7 +282,7 @@ class PresetConfig extends Component {
     return (
       <div className="row">
         <div className="col-md-3">
-          <PresetList presets={this.state.presets} currentPreset={this.state.currentPreset} onClick={this.handlePresetListClick} onNewPresetClick={this.handleNewPresetClick}/>
+          <PresetList presets={this.state.presets} currentPresetId={this.state.currentPresetId} onClick={this.handlePresetListClick} onNewPresetClick={this.handleNewPresetClick}/>
         </div>
         <div className="col-md">
           <PresetItem 
@@ -295,10 +305,10 @@ function PresetList(props)
 {
   let presetItems = props.presets.map((preset) =>
     <li 
-      className={(props.currentPreset === preset.id) ? "list-group-item active" : ("list-group-item" + ((preset.type === 'fixed') ? " list-group-item-secondary" : ""))} 
+      className={(props.currentPresetId === preset.id) ? "list-group-item active" : ("list-group-item" + ((preset.type === 'fixed') ? " list-group-item-secondary" : ""))} 
       key={preset.id} 
       preset-id={preset.id} 
-      active={(props.currentPreset === preset.id)} 
+      active={(props.currentPresetId === preset.id)}
       onClick={() => props.onClick(preset.id)}
     >
       {preset.name}
