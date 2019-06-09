@@ -67,32 +67,29 @@ class PresetConfig extends Component {
   }
 
   componentDidMount() {
-    this.getPresetList();
-    this.getCurrentPresetId();
-  }
-
-  getPresetList() {
+    // Fetch the current preset only after we've got the list
     fetch(baseUrl+'/api/all_presets/')
       .then((result) => {
         return result.json();
       }).then((jsonresult) => {
         this.setState({presets: jsonresult});
-      });
-  }
-
-  getCurrentPresetId() {
-    fetch(baseUrl+'/api/current_preset_id/')
-      .then((result) => {
-        return result.text();
-      }).then((textresult) => {
-        this.setState({currentPresetId: textresult});
+        return fetch(baseUrl+'/api/current_preset_id/')
+        .then((result) => {
+          return result.text();
+        }).then((textresult) => {
+          this.setState({currentPresetId: textresult});
+          this.fetchPresetConfig(textresult);
+        });
       });
   }
 
   handlePresetListClick(id) {
     this.setState({currentPresetId: id});
     this.setLightPanelCurrentPresetId(id);
-    
+    this.fetchPresetConfig(id);
+  }
+
+  fetchPresetConfig(id) {
     let preset = this.state.presets.find(o => o.id === id);
     if(preset.type === 'fixed') {
       this.setState({presetConfig: null});
@@ -121,7 +118,7 @@ class PresetConfig extends Component {
   }
 
   handleNewPresetClick() {
-    let newPreset = {...defaultPreset};    
+    let newPreset = {...defaultPreset};
     newPreset.id = shortid.generate();
     newPreset.wavelets = newPreset.wavelets.slice(); // Deeper copy on the array
     
