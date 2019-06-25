@@ -55,6 +55,7 @@ class PresetConfig extends Component {
       presets: [],
       currentPresetId: null,
       presetConfig: null,
+      globalBrightness: 1.0,
     }
     this.handleWaveletChange = this.handleWaveletChange.bind(this);  
     this.handlePresetListClick = this.handlePresetListClick.bind(this);  
@@ -64,6 +65,7 @@ class PresetConfig extends Component {
     this.handleDeletePresetClick = this.handleDeletePresetClick.bind(this);
     this.handlePresetNameChange = this.handlePresetNameChange.bind(this);
     this.handleSoloWaveletClick = this.handleSoloWaveletClick.bind(this);
+    this.handleGlobalBrightnessChange = this.handleGlobalBrightnessChange.bind(this);
   }
 
   componentDidMount() {
@@ -80,6 +82,14 @@ class PresetConfig extends Component {
           this.setState({currentPresetId: textresult});
           this.fetchPresetConfig(textresult);
         });
+      });
+
+    // Can fetch the brightness in parallel
+    fetch(baseUrl+'/api/brightness/')
+      .then((result) => {
+        return result.text();
+      }).then((textresult) => {
+        this.setState({globalBrightness: textresult});
       });
   }
 
@@ -101,6 +111,20 @@ class PresetConfig extends Component {
           this.setState({presetConfig: jsonresult});
         });
     }
+  }
+
+  setGlobalBrightness(value) {
+    fetch(baseUrl+'/api/brightness/'+value, {
+      cache: 'no-cache', // *default, cache, reload, force-cache, only-if-cached
+      headers: {
+        'user-agent': 'Mozilla/4.0 MDN Example',
+        'content-type': 'application/json'
+      },
+      method: 'PUT', // *GET, PUT, DELETE, etc.
+      mode: 'cors', // no-cors, *same-origin
+      redirect: 'follow', // *manual, error
+      referrer: 'no-referrer', // *client
+    });
   }
 
   setLightPanelCurrentPresetId(id) {
@@ -255,6 +279,14 @@ class PresetConfig extends Component {
     this.updateServerConfig(this.state.currentPresetId, newPresetConfig);
   }
 
+  handleGlobalBrightnessChange(event) {
+    let globalBrightness = sliderToMinMax(Number(event.target.value));
+    this.setState({
+      globalBrightness: globalBrightness,
+    });
+    this.setGlobalBrightness(globalBrightness);
+  }
+
   updateServerConfig(id, config) {
     return this.putData(baseUrl+'/api/wave_config/'+id, config);
   }
@@ -279,6 +311,7 @@ class PresetConfig extends Component {
     return (
       <div className="row">
         <div className="col-md-3">
+          <BrightnessControl globalBrightness={this.state.globalBrightness} onGlobalBrightnessChange={this.handleGlobalBrightnessChange} />
           <PresetList presets={this.state.presets} currentPresetId={this.state.currentPresetId} onClick={this.handlePresetListClick} onNewPresetClick={this.handleNewPresetClick}/>
         </div>
         <div className="col-md">
@@ -296,6 +329,23 @@ class PresetConfig extends Component {
     );
   }
 
+}
+
+function BrightnessControl(props)
+{
+  return (
+    <div className="form-group">
+    <label className="small">Brightness</label>
+    <div className="form-row">
+      <div className="col-md">
+        <input className="form-control form-control-sm" type="range" min="0" max="10" step="0.01" value={minMaxToSlider(props.globalBrightness)} name="min" onChange={props.onGlobalBrightnessChange}/>
+      </div>
+      <div className="col-md-1">
+        <span className="form-text small">{Number(props.globalBrightness).toFixed(2)}</span>
+      </div>
+    </div>
+    </div>
+  );
 }
 
 function PresetList(props)
