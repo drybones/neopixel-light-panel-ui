@@ -9,7 +9,7 @@ Use `npm run build` to compile into the `build` folder. Then `serve -s build` to
 
 Currently using `/etc/rc.local` to serve the static build on start-up:
 ```
-serve -s /home/pi/neopixel-light-panel-ui/build &
+serve -s /home/pi/github/neopixel-light-panel-ui/build &
 ```
 
 ## Config
